@@ -148,6 +148,23 @@
 {
     NSLog(@"doClear %@", url);
     [self clearCookies:url];
+    
+    //temp fix
+    NSMutableDictionary *cookieProperties = [NSMutableDictionary dictionary];
+    [cookieProperties setObject:@"_ga" forKey:NSHTTPCookieName];
+    [cookieProperties setObject:@"GA1.2.757179186.1437326162" forKey:NSHTTPCookieValue];
+    [cookieProperties setObject:@"my.velcom.by" forKey:NSHTTPCookieDomain];
+    [cookieProperties setObject:@"my.velcom.by" forKey:NSHTTPCookieOriginURL];
+    [cookieProperties setObject:@"/" forKey:NSHTTPCookiePath];
+    [cookieProperties setObject:@"0" forKey:NSHTTPCookieVersion];
+    
+    // set expiration to one month from now or any NSDate of your choosing
+    // this makes the cookie sessionless and it will persist across web sessions and app launches
+    /// if you want the cookie to be destroyed when your app exits, don't set this
+    //[cookieProperties setObject:[[NSDate date] dateByAddingTimeInterval:2629743] forKey:NSHTTPCookieExpires];
+    
+    NSHTTPCookie *cookie = [NSHTTPCookie cookieWithProperties:cookieProperties];
+    [[NSHTTPCookieStorage sharedHTTPCookieStorage] setCookie:cookie];
 }
 
 - (void) doGet:(NSString *)url withCompletion:(JSValue *)completion
@@ -210,7 +227,49 @@
 {
     NSLog(@"doPost %@", dict);
     
-    [completion callWithArguments:@[@0, @""]];
+    NSString * url = [dict objectForKey:@"url"];
+    NSString * multipart = [dict objectForKey:@"multipart"];
+    NSString * referer = [dict objectForKey:@"referer"];
+    NSDictionary * fields = [dict objectForKey:@"fields"];
+    
+    //NSMutableDictionary * params = [NSMutableDictionary dictionary];
+    
+    NSLog(@"post url %@", url);
+    NSLog(@"post multipart %@", multipart);
+    NSLog(@"post referer %@", referer);
+    NSLog(@"post fields %@", fields);
+    
+    if (!url || !fields)
+    {
+        [completion callWithArguments:@[@0, @""]];
+        return;
+    }
+    
+    [self.httpClient POST:url parameters:fields success:^(AFHTTPRequestOperation *operation, id responseObject) {
+        
+        [completion callWithArguments:@[@1, operation.responseString]];
+        
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        
+        NSLog(@"doPost httpclient_error: %@", error.localizedDescription);
+        [completion callWithArguments:@[@0, @""]];
+    }];
+    
+    /*
+    [self.httpClient POST:url
+               parameters:fields
+constructingBodyWithBlock:^(id <AFMultipartFormData> formData) {
+                [formData appendPartWithFormData:<#(NSData *)#> name:<#(NSString *)#>]}
+                  success:^(AFHTTPRequestOperation *operation, id responseObject) {
+        
+        [completion callWithArguments:@[@1, operation.responseString]];
+        
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        
+        NSLog(@"doPost httpclient_error: %@", error.localizedDescription);
+        [completion callWithArguments:@[@0, @""]];
+    }];
+    */
 }
 
 
